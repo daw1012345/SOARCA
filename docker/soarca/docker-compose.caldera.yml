@@ -1,0 +1,11 @@
+services:
+  soarca:
+    environment:
+      CALDERA_URL: "http://caldera:8888"
+    networks:
+      - caldera-net
+    depends_on:
+      - caldera
+
+networks:
+  caldera-net:

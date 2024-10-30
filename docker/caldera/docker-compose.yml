@@ -1,0 +1,7 @@
+caldera:
+  image: soarca-caldera  # needs to be built locally; see docker/caldera/README.md
+  ports:
+    - "7010:7010"
+    - "7011:7011/udp"
+    - "7012:7012"
+    - "8888:8888"

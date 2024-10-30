@@ -28,6 +28,14 @@ integration-test: swagger
 
 ci-test: test integration-test
 
+# Build a (local) Docker image for Caldera
+# https://caldera.readthedocs.io/en/latest/Installing-Caldera.html#docker-deployment
+# We must select `master` as the branch; 5.0.0 contains a critical bug: https://github.com/mitre/caldera/issues/2949
+caldera:
+	rm -rf docker/caldera/caldera
+	cd docker/caldera && git clone https://github.com/mitre/caldera.git --recursive --branch master
+	cd docker/caldera/caldera && docker build . -t soarca-caldera
+
 clean:
 	rm -rf build/soarca* build/main
 	rm -rf bin/*
