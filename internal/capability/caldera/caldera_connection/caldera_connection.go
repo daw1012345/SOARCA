@@ -13,52 +13,57 @@ const (
 	done
 )
 
-type calderaConnection struct {
-	Instance *calderaInstance
+type CalderaConnection struct {
+	instance *calderaInstance
 	state    connectionState
 }
+type CalderaFacts map[string]string
 
-func New() (*calderaConnection, error) {
+func New() (*CalderaConnection, error) {
 	var instance, err = getCalderaInstance()
 	if err != nil {
 		return nil, err
 	}
-	return &calderaConnection{instance, uninitiated}, nil
+	return &CalderaConnection{instance, uninitiated}, nil
 }
 
-func (cc calderaConnection) CreateAbility(body []byte) error {
+func (cc CalderaConnection) CreateAbility(body []byte) (string, error) {
+	//TODO add api call
+	return "", nil
+}
+func (cc CalderaConnection) DeleteAbility(abilityId string) error {
 	//TODO add api call
 	return nil
 }
-func (cc calderaConnection) DeleteAbility(abilityId string) error {
+func (cc CalderaConnection) CreateAgentGroup(agentIds []string) error {
 	//TODO add api call
 	return nil
 }
-func (cc calderaConnection) CreateAgentGroup(agentIds []string) error {
+func (cc CalderaConnection) DeleteAgentGroup(agentGroupId string) error {
 	//TODO add api call
 	return nil
 }
-func (cc calderaConnection) DeleteAgentGroup(agentGroupId string) error {
+func (cc CalderaConnection) CreateAdversary(ablilityId string) (string, error) {
+	//TODO add api call
+	return "", nil
+}
+func (cc CalderaConnection) DeleteAdversary(adversaryId string) error {
 	//TODO add api call
 	return nil
 }
-func (cc calderaConnection) CreateAdversary(ablilityId string) error {
+
+func (cc CalderaConnection) CreateOperation(
+	agentGroupId string,
+	adversaryId string,
+) (string, error) {
 	//TODO add api call
-	return nil
+	return "", nil
 }
-func (cc calderaConnection) DeleteAdversary(adversaryId string) error {
+func (cc CalderaConnection) IsOperationFinished(operationId string) (bool, error) {
 	//TODO add api call
-	return nil
+	return false, nil
 }
-func (cc calderaConnection) CreateOperation(agentGroupId string, adversaryId string) error {
+func (cc CalderaConnection) RequestFacts(operationId string) (CalderaFacts, error) {
 	//TODO add api call
-	return nil
-}
-func (cc calderaConnection) PollOperationStatus(operationId string) error {
-	//TODO add api call
-	return nil
-}
-func (cc calderaConnection) RequestFacts(operationId string) error {
-	//TODO add api call
-	return nil
+	return nil, nil
 }
