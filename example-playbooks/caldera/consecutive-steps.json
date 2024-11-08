@@ -53,8 +53,8 @@
   },
   "agent_definitions": {
     "caldera--4801fe91-cd09-4da3-a67d-3d69cd9fec7c": {
-      "type": "caldera",
-      "name": "soarca-caldera"
+      "type": "soarca",
+      "name": "soarca-caldera-cmd"
     }
   },
   "target_definitions": {
