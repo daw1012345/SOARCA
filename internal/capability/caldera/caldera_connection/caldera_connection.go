@@ -1,5 +1,12 @@
 package caldera_connection
 
+import (
+	"fmt"
+	"soarca/internal/capability/caldera/api/client/abilities"
+	"soarca/internal/capability/caldera/api/client/operationsops"
+	"soarca/internal/capability/caldera/api/models"
+)
+
 type connectionState int
 
 const (
@@ -27,43 +34,63 @@ func New() (*CalderaConnection, error) {
 	return &CalderaConnection{instance, uninitiated}, nil
 }
 
-func (cc CalderaConnection) CreateAbility(body []byte) (string, error) {
-	//TODO add api call
-	return "", nil
+func (cc CalderaConnection) CreateAbility(ability *models.Ability) (string, error) {
+	response, err := cc.instance.send.Abilities.PostAPIV2Abilities(
+		abilities.NewPostAPIV2AbilitiesParams().WithBody(ability),
+	)
+	if err != nil {
+		return "", err
+	}
+	return response.GetPayload().AbilityID, nil
 }
 func (cc CalderaConnection) DeleteAbility(abilityId string) error {
-	//TODO add api call
-	return nil
+	_, err := cc.instance.send.Abilities.DeleteAPIV2AbilitiesAbilityID(
+		abilities.NewDeleteAPIV2AbilitiesAbilityIDParams().WithAbilityID(abilityId),
+	)
+	return err
 }
-func (cc CalderaConnection) CreateAgentGroup(agentIds []string) error {
-	//TODO add api call
-	return nil
-}
-func (cc CalderaConnection) DeleteAgentGroup(agentGroupId string) error {
-	//TODO add api call
-	return nil
-}
-func (cc CalderaConnection) CreateAdversary(ablilityId string) (string, error) {
-	//TODO add api call
-	return "", nil
-}
-func (cc CalderaConnection) DeleteAdversary(adversaryId string) error {
-	//TODO add api call
-	return nil
-}
-
 func (cc CalderaConnection) CreateOperation(
 	agentGroupId string,
-	adversaryId string,
+	abilityId string,
 ) (string, error) {
-	//TODO add api call
-	return "", nil
+	response, err := cc.instance.send.Operationsops.PostAPIV2Operations(
+		operationsops.NewPostAPIV2OperationsParams().WithBody(&models.Operation{
+			Adversary: &models.Adversary{
+				AtomicOrdering: []string{abilityId},
+			},
+			Group:      agentGroupId,
+			Autonomous: 1,
+		}),
+	)
+	if err != nil {
+		return "", err
+	}
+	return response.GetPayload().ID, nil
 }
 func (cc CalderaConnection) IsOperationFinished(operationId string) (bool, error) {
-	//TODO add api call
+	response, err := cc.instance.send.Operationsops.GetAPIV2OperationsID(
+		operationsops.NewGetAPIV2OperationsIDParams().WithID(operationId),
+	)
+	if err != nil {
+		return false, err
+	}
+	if response.GetPayload().State == "finished" {
+		return true, nil
+	}
 	return false, nil
 }
 func (cc CalderaConnection) RequestFacts(operationId string) (CalderaFacts, error) {
-	//TODO add api call
-	return nil, nil
+	response, err := cc.instance.send.Operationsops.GetAPIV2OperationsIDLinks(
+		operationsops.NewGetAPIV2OperationsIDLinksParams().WithID(operationId),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var facts = make(CalderaFacts)
+	for _, link := range response.GetPayload() {
+		for _, fact := range link.Facts {
+			facts[fmt.Sprint(link.Paw, "-", fact.Name)] = fmt.Sprint(fact.Value)
+		}
+	}
+	return facts, nil
 }

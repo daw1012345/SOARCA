@@ -1,18 +1,24 @@
 package caldera_connection
 
-import "sync"
+import (
+	"soarca/internal/capability/caldera/api/client"
+	"sync"
+)
 
 type calderaInstance struct {
-	Url  string
-	Port uint16
+	send client.Caldera
 }
 
 var cInstance *calderaInstance
 var instanceLock = &sync.Mutex{}
 
 func newCalderaInstance() (*calderaInstance, error) {
-	//TODO Make the connection and do a cleanup
-	return &calderaInstance{}, nil
+	var config = client.DefaultTransportConfig()
+	//TODO set the correct host by ENV or default docker instance
+	var calderaClient = client.NewHTTPClientWithConfig(nil, config)
+
+	//TODO Do an initial cleanup
+	return &calderaInstance{*calderaClient}, nil
 }
 
 func getCalderaInstance() (*calderaInstance, error) {

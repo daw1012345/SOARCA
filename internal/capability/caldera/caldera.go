@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"soarca/internal/capability/caldera/api/models"
 	"soarca/internal/capability/caldera/caldera_connection"
 	"soarca/logger"
 	"soarca/models/cacao"
@@ -64,7 +65,8 @@ func (capability *calderaCapability) Execute(
 		if err != nil {
 			return cacao.NewVariables(), err
 		}
-		abilityId, err = connection.CreateAbility(bytes)
+		ability := parseYamlAbility(bytes)
+		abilityId, err = connection.CreateAbility(ability)
 		if err != nil {
 			log.Error("Could not create custom Ability")
 			return cacao.NewVariables(), err
@@ -74,20 +76,13 @@ func (capability *calderaCapability) Execute(
 		abilityId = command.Command
 	}
 
-	// create the adversary
-	adversaryId, err := connection.CreateAdversary(abilityId)
-	if err != nil {
-		log.Error("Could not create Adversary")
-		return cacao.NewVariables(), err
-	}
-
 	// parse the specific target group
 	if target.Type == "security-category" && slices.Contains(target.Category, "caldera") {
 		groupName = target.Name
 	}
 
 	// start the operation
-	operationId, err := connection.CreateOperation(groupName, adversaryId)
+	operationId, err := connection.CreateOperation(groupName, abilityId)
 	if err != nil {
 		log.Error("Could not start the Operation")
 		return cacao.NewVariables(), err
@@ -113,15 +108,15 @@ func (capability *calderaCapability) Execute(
 
 	// remove any artifacts
 	if createdAbility {
-		cleanup(connection, adversaryId, abilityId)
+		cleanup(connection, abilityId)
 	} else {
-		cleanup(connection, adversaryId, "")
+		cleanup(connection, "")
 	}
 
 	return parseFacts(facts), nil
 }
 
-func cleanup(cc *caldera_connection.CalderaConnection, adversaryId string, abilityId string) error {
+func cleanup(cc *caldera_connection.CalderaConnection, abilityId string) error {
 	if abilityId != "" {
 		err := cc.DeleteAbility(abilityId)
 		if err != nil {
@@ -129,7 +124,7 @@ func cleanup(cc *caldera_connection.CalderaConnection, adversaryId string, abili
 			return err
 		}
 	}
-	return cc.DeleteAdversary(adversaryId)
+	return nil
 }
 
 func parseFacts(facts caldera_connection.CalderaFacts) cacao.Variables {
@@ -142,4 +137,10 @@ func parseFacts(facts caldera_connection.CalderaFacts) cacao.Variables {
 		}
 	}
 	return variables
+}
+
+func parseYamlAbility(bytes []byte) *models.Ability {
+	return &models.Ability{
+		AbilityID: string(bytes),
+	}
 }
