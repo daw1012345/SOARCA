@@ -13,7 +13,7 @@ swaggerdocs/*
 **.env
 test/cacao/flatfile-db-example.json
 test/routes/__debug_bin2988553005
-
+.idea
 
 docs/public
 docs/resources/
