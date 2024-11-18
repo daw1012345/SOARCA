@@ -23,10 +23,14 @@ build: swagger
 test:
 	go test ./test/unittest/... -v
 
+test-coverage:
+	go test ./test/unittest/... -v -coverprofile=./cover.out -coverpkg ./internal/capability/caldera/...
+	go tool cover -html=cover.out -o=cover.html
+
 integration-test: swagger
 	go test ./test/integration/... -v
 
-ci-test: test integration-test
+ci-test: test-coverage integration-test
 
 clean:
 	rm -rf build/soarca* build/main
