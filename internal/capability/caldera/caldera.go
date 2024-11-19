@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"soarca/internal/capability/caldera/api/models"
-	"soarca/internal/capability/caldera/caldera_connection"
 	"soarca/logger"
 	"soarca/models/cacao"
 	"soarca/models/execution"
@@ -49,7 +48,7 @@ func (capability *calderaCapability) Execute(
 	variables cacao.Variables) (cacao.Variables, error) {
 
 	log.Info("Successfully called execute on the caldera capability")
-	connection, err := caldera_connection.New()
+	connection, err := newCalderaConnection()
 	if err != nil {
 		log.Error("Could not create a connection to caldera")
 		return cacao.NewVariables(), err
@@ -66,7 +65,7 @@ func (capability *calderaCapability) Execute(
 			return cacao.NewVariables(), err
 		}
 		ability := parseYamlAbility(bytes)
-		abilityId, err = connection.CreateAbility(ability)
+		abilityId, err = connection.createAbility(ability)
 		if err != nil {
 			log.Error("Could not create custom Ability")
 			return cacao.NewVariables(), err
@@ -82,14 +81,14 @@ func (capability *calderaCapability) Execute(
 	}
 
 	// start the operation
-	operationId, err := connection.CreateOperation(groupName, abilityId)
+	operationId, err := connection.createOperation(groupName, abilityId)
 	if err != nil {
 		log.Error("Could not start the Operation")
 		return cacao.NewVariables(), err
 	}
 
 	// poll for operation status
-	for finished, err := connection.IsOperationFinished(operationId); true; {
+	for finished, err := connection.isOperationFinished(operationId); true; {
 		if err != nil {
 			log.Warn("Could not poll for operation status, retrying in 3 seconds")
 			time.Sleep(3 * time.Second)
@@ -100,7 +99,7 @@ func (capability *calderaCapability) Execute(
 		}
 		time.Sleep(3 * time.Second)
 	}
-	facts, err := connection.RequestFacts(operationId)
+	facts, err := connection.requestFacts(operationId)
 	if err != nil {
 		log.Error("Could not fetch Facts from Operation")
 		return cacao.NewVariables(), err
@@ -116,9 +115,9 @@ func (capability *calderaCapability) Execute(
 	return parseFacts(facts), nil
 }
 
-func cleanup(cc *caldera_connection.CalderaConnection, abilityId string) error {
+func cleanup(cc *calderaConnection, abilityId string) error {
 	if abilityId != "" {
-		err := cc.DeleteAbility(abilityId)
+		err := cc.deleteAbility(abilityId)
 		if err != nil {
 			log.Warn("Could not cleanup artifacts from command")
 			return err
@@ -127,7 +126,7 @@ func cleanup(cc *caldera_connection.CalderaConnection, abilityId string) error {
 	return nil
 }
 
-func parseFacts(facts caldera_connection.CalderaFacts) cacao.Variables {
+func parseFacts(facts calderaFacts) cacao.Variables {
 	variables := make(cacao.Variables, len(facts))
 	for name, value := range facts {
 		variables[name] = cacao.Variable{

@@ -1,4 +1,4 @@
-package caldera_connection
+package caldera 
 
 import (
 	"soarca/internal/capability/caldera/api/client"
@@ -15,6 +15,7 @@ var instanceLock = &sync.Mutex{}
 func newCalderaInstance() (*calderaInstance, error) {
 	var config = client.DefaultTransportConfig()
 	//TODO set the correct host by ENV or default docker instance
+	config.Host = "localhost:8888"
 	var calderaClient = client.NewHTTPClientWithConfig(nil, config)
 
 	//TODO Do an initial cleanup
