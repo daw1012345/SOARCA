@@ -1,6 +1,7 @@
 package mock_caldera
 
 import (
+	"errors"
 	"soarca/internal/capability/caldera"
 	"soarca/internal/capability/caldera/api/models"
 )
@@ -33,4 +34,34 @@ func (m MockCalderaConnection) IsOperationFinished(operationId string) (bool, er
 
 func (m MockCalderaConnection) RequestFacts(operationId string) (caldera.CalderaFacts, error) {
 	return caldera.CalderaFacts{}, nil
+}
+
+type MockBadCalderaConnectionFactory struct{}
+type MockBadCalderaConnection struct{}
+
+func (f MockBadCalderaConnectionFactory) Create() (caldera.ICalderaConnection, error) {
+	return &MockBadCalderaConnection{}, nil
+}
+
+func (m MockBadCalderaConnection) CreateAbility(ability *models.Ability) (string, error) {
+	return "", errors.New("Error Creating Ability")
+}
+
+func (m MockBadCalderaConnection) CreateOperation(
+	agentGroupId string,
+	abilityId string,
+) (string, error) {
+	return "", errors.New("Error Creating Operation")
+}
+
+func (m MockBadCalderaConnection) DeleteAbility(abilityId string) error {
+	return errors.New("Error Deleting Ability")
+}
+
+func (m MockBadCalderaConnection) IsOperationFinished(operationId string) (bool, error) {
+	return false, errors.New("Error Fetching Finished")
+}
+
+func (m MockBadCalderaConnection) RequestFacts(operationId string) (caldera.CalderaFacts, error) {
+	return caldera.CalderaFacts{}, errors.New("Error Requesting Facts")
 }
