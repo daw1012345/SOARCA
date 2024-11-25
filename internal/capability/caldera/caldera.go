@@ -120,15 +120,13 @@ func (capability *calderaCapability) Execute(
 	return parseFacts(facts), nil
 }
 
-func cleanup(cc ICalderaConnection, abilityId string) error {
+func cleanup(cc ICalderaConnection, abilityId string) {
 	if abilityId != "" {
 		err := cc.DeleteAbility(abilityId)
 		if err != nil {
 			log.Warn("Could not cleanup artifacts from command")
-			return err
 		}
 	}
-	return nil
 }
 
 func parseFacts(facts CalderaFacts) cacao.Variables {
