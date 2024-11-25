@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"time"
+	"sigs.k8s.io/yaml"
 
 	"soarca/internal/capability/caldera/api/models"
 	"soarca/logger"
@@ -69,7 +70,7 @@ func (capability *calderaCapability) Execute(
 		if err != nil {
 			return cacao.NewVariables(), err
 		}
-		ability := parseYamlAbility(bytes)
+		ability := ParseYamlAbility(bytes)
 		abilityId, err = connection.CreateAbility(ability)
 		if err != nil {
 			log.Error("Could not create custom Ability")
@@ -141,8 +142,12 @@ func parseFacts(facts CalderaFacts) cacao.Variables {
 	return variables
 }
 
-func parseYamlAbility(bytes []byte) *models.Ability {
-	return &models.Ability{
-		AbilityID: string(bytes),
+func ParseYamlAbility(bytes []byte) *models.Ability {
+	var ability models.Ability
+	err := yaml.Unmarshal(bytes, &ability)
+	if err != nil {
+		log.Error("Could not convert ability YAML to a valid Ability object")
+		return &models.Ability{}
 	}
+	return &ability
 }

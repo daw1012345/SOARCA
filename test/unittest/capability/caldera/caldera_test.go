@@ -49,6 +49,17 @@ func TestExecuteB64(t *testing.T) {
 	assert.Equal(t, cacao.NewVariables(), results)
 }
 
+func TestParseYamlAbility(t *testing.T) {
+	resultingAbility := caldera.ParseYamlAbility([]byte("ability_id: 9a30740d-3aa8-4c23-8efa-d51215e8a5b9"))
+	assert.Equal(t, resultingAbility.AbilityID, "9a30740d-3aa8-4c23-8efa-d51215e8a5b9")
+}
+
+func TestParseYamlAbilityWithException(t *testing.T) {
+	// This should not crash, just produce an empty Ability
+	resultingAbility := caldera.ParseYamlAbility([]byte("  / very %$#% invalid yaml"))
+	assert.Equal(t, resultingAbility.AbilityID, "")
+}
+
 func TestExecuteErrorConnection(t *testing.T) {
 	calderaCapability := caldera.New(&mock_caldera.MockBadCalderaConnectionFactory{})
 
