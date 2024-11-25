@@ -1,4 +1,4 @@
-package caldera 
+package caldera
 
 import (
 	"fmt"
@@ -7,13 +7,12 @@ import (
 	"soarca/internal/capability/caldera/api/models"
 )
 
-
-type calderaConnection struct {
-	instance *calderaInstance
+type ICalderaConnectionFactory interface {
+	Create() (ICalderaConnection, error)
 }
-type calderaFacts map[string]string
+type calderaConnectionFactory struct{}
 
-func newCalderaConnection() (*calderaConnection, error) {
+func (c calderaConnectionFactory) Create() (ICalderaConnection, error) {
 	var instance, err = getCalderaInstance()
 	if err != nil {
 		return nil, err
@@ -21,7 +20,20 @@ func newCalderaConnection() (*calderaConnection, error) {
 	return &calderaConnection{instance}, nil
 }
 
-func (cc calderaConnection) createAbility(ability *models.Ability) (string, error) {
+type ICalderaConnection interface {
+	CreateAbility(ability *models.Ability) (string, error)
+	DeleteAbility(abilityId string) error
+	CreateOperation(agentGroupId string, abilityId string) (string, error)
+	IsOperationFinished(operationId string) (bool, error)
+	RequestFacts(operationId string) (CalderaFacts, error)
+}
+
+type calderaConnection struct {
+	instance *calderaInstance
+}
+type CalderaFacts map[string]string
+
+func (cc calderaConnection) CreateAbility(ability *models.Ability) (string, error) {
 	response, err := cc.instance.send.Abilities.PostAPIV2Abilities(
 		abilities.NewPostAPIV2AbilitiesParams().WithBody(ability),
 	)
@@ -30,13 +42,13 @@ func (cc calderaConnection) createAbility(ability *models.Ability) (string, erro
 	}
 	return response.GetPayload().AbilityID, nil
 }
-func (cc calderaConnection) deleteAbility(abilityId string) error {
+func (cc calderaConnection) DeleteAbility(abilityId string) error {
 	_, err := cc.instance.send.Abilities.DeleteAPIV2AbilitiesAbilityID(
 		abilities.NewDeleteAPIV2AbilitiesAbilityIDParams().WithAbilityID(abilityId),
 	)
 	return err
 }
-func (cc calderaConnection) createOperation(
+func (cc calderaConnection) CreateOperation(
 	agentGroupId string,
 	abilityId string,
 ) (string, error) {
@@ -47,7 +59,7 @@ func (cc calderaConnection) createOperation(
 			},
 			Group:      agentGroupId,
 			Autonomous: 1,
-			AutoClose: true,
+			AutoClose:  true,
 		}),
 	)
 	if err != nil {
@@ -55,7 +67,7 @@ func (cc calderaConnection) createOperation(
 	}
 	return response.GetPayload().ID, nil
 }
-func (cc calderaConnection) isOperationFinished(operationId string) (bool, error) {
+func (cc calderaConnection) IsOperationFinished(operationId string) (bool, error) {
 	response, err := cc.instance.send.Operationsops.GetAPIV2OperationsID(
 		operationsops.NewGetAPIV2OperationsIDParams().WithID(operationId),
 	)
@@ -67,14 +79,14 @@ func (cc calderaConnection) isOperationFinished(operationId string) (bool, error
 	}
 	return false, nil
 }
-func (cc calderaConnection) requestFacts(operationId string) (calderaFacts, error) {
+func (cc calderaConnection) RequestFacts(operationId string) (CalderaFacts, error) {
 	response, err := cc.instance.send.Operationsops.GetAPIV2OperationsIDLinks(
 		operationsops.NewGetAPIV2OperationsIDLinksParams().WithID(operationId),
 	)
 	if err != nil {
 		return nil, err
 	}
-	var facts = make(calderaFacts)
+	var facts = make(CalderaFacts)
 	for _, link := range response.GetPayload() {
 		for _, fact := range link.Facts {
 			facts[fmt.Sprint(link.Paw, "-", fact.Name)] = fmt.Sprint(fact.Value)
