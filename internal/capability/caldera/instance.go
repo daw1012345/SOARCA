@@ -1,6 +1,8 @@
-package caldera 
+package caldera
 
 import (
+	httptransport "github.com/go-openapi/runtime/client"
+	"os"
 	"soarca/internal/capability/caldera/api/client"
 	"sync"
 )
@@ -15,8 +17,13 @@ var instanceLock = &sync.Mutex{}
 func newCalderaInstance() (*calderaInstance, error) {
 	var config = client.DefaultTransportConfig()
 	//TODO set the correct host by ENV or default docker instance
-	config.Host = "localhost:8888"
+	config.Host = os.Getenv("CALDERA_BASE_URL")
+
 	var calderaClient = client.NewHTTPClientWithConfig(nil, config)
+
+	r := httptransport.New(config.Host, config.BasePath, config.Schemes)
+	r.DefaultAuthentication = httptransport.APIKeyAuth("Key", "header", os.Getenv("API_KEY"))
+	calderaClient.SetTransport(r)
 
 	//TODO Do an initial cleanup
 	return &calderaInstance{*calderaClient}, nil
