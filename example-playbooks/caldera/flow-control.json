@@ -112,7 +112,7 @@
   "target_definitions": {
     "security-category--b1ead715-d565-48f8-a6a4-0d5c4a3e643e": {
       "type": "security-category",
-      "name": "djnsbg",
+      "name": "red",
       "category": [
         "caldera"
       ]
