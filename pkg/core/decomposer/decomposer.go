@@ -42,9 +42,9 @@ func init() {
 	log = logger.Logger(component, logger.Info, "", logger.Json)
 }
 
-func New(actionExecutor action.IExecuter,
-	playbookActionExecutor executors.IPlaybookExecuter,
-	condition condition.IExecuter,
+func New(actionExecutor action.IExecutor,
+	playbookActionExecutor executors.IPlaybookExecutor,
+	condition condition.IExecutor,
 	guid guid.IGuid,
 	reporter reporter.IWorkflowReporter,
 	time timeUtil.ITime) *Decomposer {
@@ -61,9 +61,9 @@ func New(actionExecutor action.IExecuter,
 type Decomposer struct {
 	playbook               cacao.Playbook
 	details                ExecutionDetails
-	actionExecutor         action.IExecuter
-	playbookActionExecutor executors.IPlaybookExecuter
-	conditionExecutor      condition.IExecuter
+	actionExecutor         action.IExecutor
+	playbookActionExecutor executors.IPlaybookExecutor
+	conditionExecutor      condition.IExecutor
 	guid                   guid.IGuid
 	reporter               reporter.IWorkflowReporter
 	time                   timeUtil.ITime
