@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"slices"
 	"strings"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	"soarca/internal/logger"
 	"soarca/pkg/core/capability"
@@ -66,7 +67,7 @@ func (capability *calderaCapability) GetType() string {
 func (c *calderaCapability) Execute(
 	metadata execution.Metadata,
 	context capability.Context) (cacao.Variables, error) {
-
+	objectName := fmt.Sprintf("soarca-%s", metadata.ExecutionId.String())
 	command := context.Command
 	target := context.Target
 
@@ -94,6 +95,8 @@ func (c *calderaCapability) Execute(
 			// If that fails, try unmarshalling the ability with yaml decoding
 			ability = ParseYamlAbility(bytes)
 		}
+		// Enforce the name of the Ability, in order to later locate it for cleanup
+		(*ability).Name = &objectName
 		abilityId, err = connection.CreateAbility(ability)
 		if err != nil {
 			log.Error("Could not create custom Ability")
@@ -110,14 +113,21 @@ func (c *calderaCapability) Execute(
 	}
 
 	// create an adversary
-	adversaryId, err := connection.CreateAdversary(abilityId)
+	adversaryId, err := connection.CreateAdversary(
+		objectName,
+		abilityId,
+	)
 	if err != nil {
 		log.Error("Could not create the Adversary", err)
 		return cacao.NewVariables(), err
 	}
 
 	// start the operation
-	operationId, err := connection.CreateOperation(groupName, adversaryId)
+	operationId, err := connection.CreateOperation(
+		objectName,
+		groupName,
+		adversaryId,
+	)
 	if err != nil {
 		log.Error("Could not start the Operation", err)
 		return cacao.NewVariables(), err

@@ -1,7 +1,6 @@
 package caldera_test
 
 import (
-	"github.com/go-playground/assert/v2"
 	"soarca/pkg/core/capability"
 	"soarca/pkg/core/capability/caldera"
 	calderaModels "soarca/pkg/core/capability/caldera/api/models"
@@ -9,6 +8,9 @@ import (
 	"soarca/pkg/models/execution"
 	mock_caldera "soarca/test/unittest/mocks/mock_utils/caldera"
 	"testing"
+
+	"github.com/go-playground/assert/v2"
+	"github.com/google/uuid"
 )
 
 func TestCapabilityName(t *testing.T) {
@@ -35,9 +37,12 @@ func TestExecute(t *testing.T) {
 
 func TestExecuteB64(t *testing.T) {
 	calderaCapability := caldera.New(&mock_caldera.MockCalderaConnectionFactory{})
+	execId := uuid.New()
 
 	results, err := calderaCapability.Execute(
-		execution.Metadata{},
+		execution.Metadata{
+			ExecutionId: execId,
+		},
 		capability.Context{
 			Command: cacao.Command{Type: "caldera-cmd", CommandB64: "e30="},
 		},
@@ -99,10 +104,10 @@ func TestSomethingElse(t *testing.T) {
 	connection, err := capability.Factory.Create()
 	assert.Equal(t, err, nil)
 
-	_, err1 := connection.CreateOperation("agentGroup-0001", "adversary-0001")
+	_, err1 := connection.CreateOperation("soarca-1234", "agentGroup-0001", "adversary-0001")
 	assert.NotEqual(t, err1, nil)
 
-	_, err2 := connection.CreateAdversary("ability-0001")
+	_, err2 := connection.CreateAdversary("soarca-1234", "ability-0001")
 	assert.NotEqual(t, err2, nil)
 
 	_, err3 := connection.IsOperationFinished("operation-0001")

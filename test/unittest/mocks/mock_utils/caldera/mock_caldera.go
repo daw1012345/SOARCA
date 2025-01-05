@@ -17,11 +17,12 @@ func (m MockCalderaConnection) CreateAbility(ability *models.Ability) (string, e
 	return "abilityID", nil
 }
 
-func (m MockCalderaConnection) CreateAdversary(abilityID string) (string, error) {
+func (m MockCalderaConnection) CreateAdversary(name string, abilityId string) (string, error) {
 	return "adversaryID", nil
 }
 
 func (m MockCalderaConnection) CreateOperation(
+	name string,
 	agentGroupId string,
 	abilityId string,
 ) (string, error) {
@@ -51,11 +52,8 @@ func (m MockBadCalderaConnection) CreateAbility(ability *models.Ability) (string
 	return "", errors.New("Error Creating Ability")
 }
 
-func (m MockBadCalderaConnection) CreateAdversary(abilityId string) (string, error) {
-	return "", errors.New("Error Creating Adversary")
-}
-
 func (m MockBadCalderaConnection) CreateOperation(
+	name string,
 	agentGroupId string,
 	abilityId string,
 ) (string, error) {
@@ -72,4 +70,8 @@ func (m MockBadCalderaConnection) IsOperationFinished(operationId string) (bool,
 
 func (m MockBadCalderaConnection) RequestFacts(operationId string) ([]*models.PartialLink, error) {
 	return make([]*models.PartialLink, 0), errors.New("Error Requesting Facts")
+}
+
+func (m MockBadCalderaConnection) CreateAdversary(name string, abilityId string) (string, error) {
+	return "", errors.New("Error Creating Adversary")
 }

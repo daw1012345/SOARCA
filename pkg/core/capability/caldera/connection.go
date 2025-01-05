@@ -35,10 +35,10 @@ func (c calderaConnectionFactory) Create() (ICalderaConnection, error) {
 type ICalderaConnection interface {
 	CreateAbility(ability *models.Ability) (string, error)
 	DeleteAbility(abilityId string) error
-	CreateOperation(agentGroupId string, adversaryId string) (string, error)
+	CreateOperation(name string, agentGroupId string, adversaryId string) (string, error)
 	IsOperationFinished(operationId string) (bool, error)
 	RequestFacts(operationId string) ([]*models.PartialLink, error)
-	CreateAdversary(abilityId string) (string, error)
+	CreateAdversary(name string, abilityId string) (string, error)
 }
 
 // calderaConnection is the default Caldera connection struct built by the calderaConnectionFactory.
@@ -83,10 +83,10 @@ func (cc calderaConnection) DeleteAbility(abilityId string) error {
 //
 // It returns the id of the created operation, or an error if it fails.
 func (cc calderaConnection) CreateOperation(
+	name string,
 	agentGroupId string,
 	adversaryId string,
 ) (string, error) {
-	name := "SOARCA operation"
 	response, err := cc.instance.send.Operationsops.PostAPIV2Operations(
 		operationsops.NewPostAPIV2OperationsParams().WithBody(&models.Operation{
 			Adversary: &models.Adversary{
@@ -109,10 +109,10 @@ func (cc calderaConnection) CreateOperation(
 // CreateAdversary initiates a request to the Caldera instance to create a Caldera Adversary.
 //
 // It returns the id of the created adversary, or an error if it fails.
-func (cc calderaConnection) CreateAdversary(abilityId string) (string, error) {
+func (cc calderaConnection) CreateAdversary(name string, abilityId string) (string, error) {
 	response, err := cc.instance.send.Adversaries.PostAPIV2Adversaries(
 		adversaries.NewPostAPIV2AdversariesParams().WithBody(&models.Adversary{
-			Name:           "SOARCA adversary",
+			Name:           name,
 			AtomicOrdering: []string{abilityId},
 		}),
 		authenticateCaldera,
