@@ -124,7 +124,7 @@ func (c *calderaCapability) Execute(
 	}
 
 	// poll for operation status
-	for finished, err := connection.IsOperationFinished(operationId); true; {
+	for finished, err := connection.IsOperationFinished(operationId); true; finished, err = connection.IsOperationFinished(operationId) {
 		if err != nil {
 			log.Warn("Could not poll for operation status, retrying in 3 seconds")
 			time.Sleep(3 * time.Second)
