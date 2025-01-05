@@ -88,6 +88,14 @@ This only works when using Docker Compose to run SOARCA. When building SOARCA fr
 you should supply your own Caldera instance and [configure](#configuration) its URL manually.
 {{% /alert %}}
 
+{{% alert title="Warning" %}}
+Note that Caldera in this mode operates with default credentials and settings. This is dangerous
+for a public-facing setup and therefore not production-ready out of the box. You probably want
+to consult the
+[Caldera documentation on configuration](https://caldera.readthedocs.io/en/latest/Server-Configuration.html#configuration-file)
+before deploying to production.
+{{% /alert %}}
+
 ## Configuration
 
 SOARCA reads its configuration from the environment variables or a `.env` file. An example of a `.env` is given below:
