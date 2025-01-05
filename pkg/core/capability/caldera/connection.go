@@ -5,6 +5,7 @@ import (
 	"soarca/pkg/core/capability/caldera/api/client/abilities"
 	"soarca/pkg/core/capability/caldera/api/client/adversaries"
 	"soarca/pkg/core/capability/caldera/api/client/operationsops"
+	"soarca/pkg/core/capability/caldera/api/client/sources"
 	"soarca/pkg/core/capability/caldera/api/models"
 )
 
@@ -35,10 +36,15 @@ func (c calderaConnectionFactory) Create() (ICalderaConnection, error) {
 type ICalderaConnection interface {
 	CreateAbility(ability *models.Ability) (string, error)
 	DeleteAbility(abilityId string) error
-	CreateOperation(name string, agentGroupId string, adversaryId string) (string, error)
+	CreateOperation(name string, agentGroupId string, adversaryId string, factSourceId string) (string, error)
 	IsOperationFinished(operationId string) (bool, error)
 	RequestFacts(operationId string) ([]*models.PartialLink, error)
 	CreateAdversary(name string, abilityId string) (string, error)
+	SetFactSourceFacts(factSourceName string, factSourceData *models.PartialSource) error
+	GetFactSources() ([]*models.PartialSource, error)
+	GetFactSource(factSourceId string) (*models.PartialSource, error)
+	CreateFactSource(factSourceName string) (string, error)
+	DeleteFactSource(factSourceId string) error
 }
 
 // calderaConnection is the default Caldera connection struct built by the calderaConnectionFactory.
@@ -86,17 +92,26 @@ func (cc calderaConnection) CreateOperation(
 	name string,
 	agentGroupId string,
 	adversaryId string,
+	factSourceId string,
 ) (string, error) {
 	response, err := cc.instance.send.Operationsops.PostAPIV2Operations(
 		operationsops.NewPostAPIV2OperationsParams().WithBody(&models.Operation{
 			Adversary: &models.Adversary{
 				AdversaryID:    adversaryId,
 				AtomicOrdering: []string{},
+				Tags:           []string{},
 			},
 			Group:      agentGroupId,
 			Autonomous: 1,
 			AutoClose:  true,
 			Name:       &name,
+			Source: &models.Source{
+				ID:            factSourceId,
+				Adjustments:   make([]*models.Adjustment, 0),
+				Rules:         make([]*models.Rule, 0),
+				Facts:         make([]*models.Fact, 0),
+				Relationships: make([]*models.Relationship, 0),
+			},
 		}),
 		authenticateCaldera,
 	)
@@ -114,6 +129,7 @@ func (cc calderaConnection) CreateAdversary(name string, abilityId string) (stri
 		adversaries.NewPostAPIV2AdversariesParams().WithBody(&models.Adversary{
 			Name:           name,
 			AtomicOrdering: []string{abilityId},
+			Tags:           []string{},
 		}),
 		authenticateCaldera,
 	)
@@ -132,6 +148,7 @@ func (cc calderaConnection) IsOperationFinished(operationId string) (bool, error
 		authenticateCaldera,
 	)
 	if err != nil {
+		log.Error(err)
 		return false, err
 	}
 	if response.GetPayload().State == "finished" {
@@ -151,5 +168,68 @@ func (cc calderaConnection) RequestFacts(operationId string) ([]*models.PartialL
 	if err != nil {
 		return nil, err
 	}
+	return response.GetPayload(), nil
+}
+
+// SetFactSourceFacts initiates a request to the Caldera instance to update a given Caldera Fact Source with new facts and relationships.
+//
+// Only return a possible error if the request fails.
+func (cc calderaConnection) SetFactSourceFacts(factSourceName string, factSourceData *models.PartialSource) error {
+	_, err := cc.instance.send.Sources.PatchAPIV2SourcesID(sources.NewPatchAPIV2SourcesIDParams().WithID(factSourceName).WithBody(factSourceData), authenticateCaldera)
+
+	return err
+}
+
+// CreateFactSource initiates a request to the Caldera instance to create a new Caldera Fact Source.
+//
+// It returns the id of the created fact source, or an error if it fails.
+func (cc calderaConnection) CreateFactSource(factSourceName string) (string, error) {
+	body := models.Source{}
+	body.Name = factSourceName
+	body.Facts = []*models.Fact{}
+	body.Relationships = []*models.Relationship{}
+	body.Rules = []*models.Rule{}
+
+	response, err := cc.instance.send.Sources.PostAPIV2Sources(sources.NewPostAPIV2SourcesParams().WithBody(&body), authenticateCaldera)
+
+	if err != nil {
+		return "", err
+	}
+
+	return response.GetPayload().ID, nil
+}
+
+// GetFactSources initiates a request to the Caldera instance to get all Caldera Fact Sources.
+//
+// It returns a list of Caldera Fact Sources, or an error if it fails.
+func (cc calderaConnection) GetFactSources() ([]*models.PartialSource, error) {
+	response, err := cc.instance.send.Sources.GetAPIV2Sources(sources.NewGetAPIV2SourcesParams(), authenticateCaldera)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response.GetPayload(), nil
+}
+
+// DeleteFactSource initiates a request to the Caldera instance to delete a Caldera Fact Source.
+//
+// It only returns an error if the request fails.
+func (cc calderaConnection) DeleteFactSource(factSourceId string) error {
+	_, err := cc.instance.send.Sources.DeleteAPIV2SourcesID(sources.NewDeleteAPIV2SourcesIDParams().WithID(factSourceId), authenticateCaldera)
+
+	return err
+}
+
+// GetFactSource initiates a request to the Caldera instance to get a specific Caldera Fact Source.
+//
+// It returns the Caldera Fact Source, or an error if it fails.
+func (cc calderaConnection) GetFactSource(factSourceId string) (*models.PartialSource, error) {
+	response, err := cc.instance.send.Sources.GetAPIV2SourcesID(sources.NewGetAPIV2SourcesIDParams().WithID(factSourceId), authenticateCaldera)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return response.GetPayload(), nil
 }

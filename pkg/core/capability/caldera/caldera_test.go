@@ -1,12 +1,10 @@
-package caldera_test
+package caldera
 
 import (
 	"soarca/pkg/core/capability"
-	"soarca/pkg/core/capability/caldera"
 	calderaModels "soarca/pkg/core/capability/caldera/api/models"
 	"soarca/pkg/models/cacao"
 	"soarca/pkg/models/execution"
-	mock_caldera "soarca/test/unittest/mocks/mock_utils/caldera"
 	"testing"
 
 	"github.com/go-playground/assert/v2"
@@ -14,12 +12,12 @@ import (
 )
 
 func TestCapabilityName(t *testing.T) {
-	calderaCapability := caldera.New(&mock_caldera.MockCalderaConnectionFactory{})
+	calderaCapability := New(&MockCalderaConnectionFactory{})
 	assert.Equal(t, calderaCapability.GetType(), "soarca-caldera-cmd")
 }
 
 func TestExecute(t *testing.T) {
-	calderaCapability := caldera.New(&mock_caldera.MockCalderaConnectionFactory{})
+	calderaCapability := New(&MockCalderaConnectionFactory{})
 
 	results, err := calderaCapability.Execute(
 		execution.Metadata{},
@@ -32,11 +30,14 @@ func TestExecute(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, cacao.NewVariables(), results)
+	retVal, exists := results.Find("__sample.operation.fact__")
+
+	assert.Equal(t, true, exists)
+	assert.Equal(t, "some_value_1", retVal.Value)
 }
 
 func TestExecuteB64(t *testing.T) {
-	calderaCapability := caldera.New(&mock_caldera.MockCalderaConnectionFactory{})
+	calderaCapability := New(&MockCalderaConnectionFactory{})
 	execId := uuid.New()
 
 	results, err := calderaCapability.Execute(
@@ -52,34 +53,36 @@ func TestExecuteB64(t *testing.T) {
 		t.Fail()
 	}
 
-	assert.Equal(t, cacao.NewVariables(), results)
+	retVal, exists := results.Find("__sample.operation.fact__")
+
+	assert.Equal(t, true, exists)
+	assert.Equal(t, "some_value_1", retVal.Value)
 }
 
 func TestParseYamlAbility(t *testing.T) {
-	resultingAbility := caldera.ParseYamlAbility([]byte("ability_id: 9a30740d-3aa8-4c23-8efa-d51215e8a5b9"))
+	resultingAbility := ParseYamlAbility([]byte("ability_id: 9a30740d-3aa8-4c23-8efa-d51215e8a5b9"))
 	assert.Equal(t, resultingAbility.AbilityID, "9a30740d-3aa8-4c23-8efa-d51215e8a5b9")
 }
 
 func TestParseJsonAbility(t *testing.T) {
-	resultingAbility := caldera.ParseJsonAbility([]byte("{\"ability_id\": \"9a30740d-3aa8-4c23-8efa-d51215e8a5b9\"}"))
+	resultingAbility := ParseJsonAbility([]byte("{\"ability_id\": \"9a30740d-3aa8-4c23-8efa-d51215e8a5b9\"}"))
 	assert.Equal(t, resultingAbility.AbilityID, "9a30740d-3aa8-4c23-8efa-d51215e8a5b9")
 }
 
 func TestParseJsonAbilityWithException(t *testing.T) {
 	// This should not crash, just produce an empty Ability
-	resultingAbility := caldera.ParseJsonAbility([]byte("  / very %$#% invalid json"))
+	resultingAbility := ParseJsonAbility([]byte("  / very %$#% invalid json"))
 	assert.Equal(t, resultingAbility.AbilityID, "")
 }
 
 func TestParseYamlAbilityWithException(t *testing.T) {
 	// This should not crash, just produce an empty Ability
-	resultingAbility := caldera.ParseYamlAbility([]byte("  / very %$#% invalid yaml"))
+	resultingAbility := ParseYamlAbility([]byte("  / very %$#% invalid yaml"))
 	assert.Equal(t, resultingAbility.AbilityID, "")
 }
 
 func TestExecuteErrorConnection(t *testing.T) {
-	calderaCapability := caldera.New(&mock_caldera.MockBadCalderaConnectionFactory{})
-
+	calderaCapability := New(&MockBadCalderaConnectionFactory{})
 	_, err := calderaCapability.Execute(
 		execution.Metadata{},
 		capability.Context{
@@ -95,16 +98,27 @@ func TestExecuteErrorConnection(t *testing.T) {
 }
 
 func TestGetCalderaInstance(t *testing.T) {
-	_, err := caldera.GetCalderaInstance()
+	_, err := GetCalderaInstance()
 	assert.Equal(t, err, nil)
 }
 
+func TestCalderaHandleFacts(t *testing.T) {
+	vars, err := processFacts(&MockCalderaConnection{}, "operation-0001", "soarca-0000-global")
+	assert.Equal(t, vars["__sample.operation.fact__"].Name, "__sample.operation.fact__")
+	assert.Equal(t, err, nil)
+
+	_, err1 := processFacts(&MockBadCalderaConnection{}, "operation-0001", "soarca-0000-global")
+
+	assert.NotEqual(t, err1, nil)
+
+}
+
 func TestSomethingElse(t *testing.T) {
-	capability := caldera.New(nil)
+	capability := New(nil)
 	connection, err := capability.Factory.Create()
 	assert.Equal(t, err, nil)
 
-	_, err1 := connection.CreateOperation("soarca-1234", "agentGroup-0001", "adversary-0001")
+	_, err1 := connection.CreateOperation("soarca-1234", "agentGroup-0001", "adversary-0001", "source-0001")
 	assert.NotEqual(t, err1, nil)
 
 	_, err2 := connection.CreateAdversary("soarca-1234", "ability-0001")
@@ -122,4 +136,18 @@ func TestSomethingElse(t *testing.T) {
 	err6 := connection.DeleteAbility("ability-0001")
 	assert.NotEqual(t, err6, nil)
 
+	_, err7 := connection.GetFactSource("source-0001")
+	assert.NotEqual(t, err7, nil)
+
+	err8 := connection.DeleteFactSource("source-0001")
+	assert.NotEqual(t, err8, nil)
+
+	_, err9 := connection.GetFactSources()
+	assert.NotEqual(t, err9, nil)
+
+	_, err10 := connection.CreateFactSource("source-0001")
+	assert.NotEqual(t, err10, nil)
+
+	err11 := connection.SetFactSourceFacts("source-0001", &calderaModels.PartialSource{})
+	assert.NotEqual(t, err11, nil)
 }
