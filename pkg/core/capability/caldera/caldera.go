@@ -112,6 +112,13 @@ func (c *calderaCapability) Execute(
 		groupName = target.Name
 	}
 
+	globalFactSourceId, err := createGlobalFactSourceIfMissing(connection, metadata)
+
+	if err != nil {
+		log.Error("Could not create/find a global fact source", err)
+		return cacao.NewVariables(), err
+	}
+
 	// create an adversary
 	adversaryId, err := connection.CreateAdversary(
 		objectName,
@@ -127,6 +134,7 @@ func (c *calderaCapability) Execute(
 		objectName,
 		groupName,
 		adversaryId,
+		globalFactSourceId,
 	)
 	if err != nil {
 		log.Error("Could not start the Operation", err)
@@ -145,18 +153,11 @@ func (c *calderaCapability) Execute(
 		}
 		time.Sleep(3 * time.Second)
 	}
-	factsResponse, err := connection.RequestFacts(operationId)
-	if err != nil {
-		log.Error("Could not fetch Facts from Operation")
-		return cacao.NewVariables(), err
-	}
 
-	// process the facts
-	var facts = make(CalderaFacts)
-	for _, link := range factsResponse {
-		for _, fact := range link.Facts {
-			facts[fmt.Sprint(link.Paw, "-", fact.Name)] = fmt.Sprint(fact.Value)
-		}
+	facts, err := processFacts(connection, operationId, globalFactSourceId)
+	if err != nil {
+		log.Error("Could not process facts", err)
+		return cacao.NewVariables(), err
 	}
 
 	// remove any artifacts
@@ -166,7 +167,7 @@ func (c *calderaCapability) Execute(
 		cleanup(connection, "")
 	}
 
-	return parseFacts(facts), nil
+	return facts, nil
 }
 
 // cleanup handles the removal of the created artifacts on the caldera server using the same connection.
@@ -179,18 +180,72 @@ func cleanup(cc ICalderaConnection, abilityId string) {
 	}
 }
 
-// parseFacts transforms the caldera facts into cacao variables.
-// It adds metadata needed for a cacao variable, which for now is just the type of variable.
-func parseFacts(facts CalderaFacts) cacao.Variables {
-	variables := make(cacao.Variables, len(facts))
-	for name, value := range facts {
-		variables[name] = cacao.Variable{
-			Name:  fmt.Sprintf("__%s__", name),
-			Type:  cacao.VariableTypeString,
-			Value: value,
+// Creates fact source suffixed with '-global' where all execution-specific facts will be stored
+// It first checks if one exists. If it does, simply returns the id
+func createGlobalFactSourceIfMissing(cc ICalderaConnection, metadata execution.Metadata) (string, error) {
+	existingSources, err := cc.GetFactSources()
+	expectedFactSourceName := fmt.Sprintf("soarca-%s-global", metadata.ExecutionId)
+
+	if err != nil {
+		return "", err
+	}
+
+	for _, source := range existingSources {
+		if source.Name == expectedFactSourceName {
+			return source.ID, nil
 		}
 	}
-	return variables
+
+	id, err := cc.CreateFactSource(expectedFactSourceName)
+
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+// Saves all facts from the operation as cacao variables (if included in OutArgs).
+// Afterwards, copies over all facts to a global fact source to be used by future operations
+func processFacts(cc ICalderaConnection, operationId string, globalFactSourceId string) (cacao.Variables, error) {
+	operationFacts, err := cc.RequestFacts(operationId)
+	if err != nil {
+		log.Error("Could not fetch Facts from Operation")
+		return nil, err
+	}
+
+	existingFacts, err := cc.GetFactSource(globalFactSourceId)
+
+	if err != nil {
+		log.Error("Could not fetch facts from global source!")
+		return nil, err
+	}
+
+	for _, f := range operationFacts {
+		existingFacts.Facts = append(existingFacts.Facts, f.Facts...)
+		existingFacts.Relationships = append(existingFacts.Relationships, f.Relationships...)
+	}
+
+	err = cc.SetFactSourceFacts(globalFactSourceId, existingFacts)
+
+	if err != nil {
+		return nil, err
+	}
+	variables := make(cacao.Variables)
+	for _, link := range operationFacts {
+		for _, fact := range link.Facts {
+			factName := fmt.Sprint("__", fact.Name, "__")
+			log.Error(fmt.Sprintf("Fact name: %s", factName))
+			log.Error("Adding fact: ", factName, " with value: ", fmt.Sprint(fact.Value))
+			variables[factName] = cacao.Variable{
+				Name:  factName,
+				Type:  cacao.VariableTypeString,
+				Value: fmt.Sprint(fact.Value),
+			}
+		}
+	}
+
+	return variables, nil
 }
 
 // ParseJsonAbility converts a byte array into a caldera Ability.
