@@ -5,6 +5,7 @@ import (
 	"soarca/pkg/core/capability/caldera/api/client/abilities"
 	"soarca/pkg/core/capability/caldera/api/client/adversaries"
 	"soarca/pkg/core/capability/caldera/api/client/operationsops"
+	"soarca/pkg/core/capability/caldera/api/client/sources"
 	"soarca/pkg/core/capability/caldera/api/models"
 )
 
@@ -38,6 +39,11 @@ type ICalderaConnection interface {
 	CreateOperation(agentGroupId string, adversaryId string) (string, error)
 	IsOperationFinished(operationId string) (bool, error)
 	RequestFacts(operationId string) ([]*models.PartialLink, error)
+	SetFactSourceFacts(factSourceName string, factSourceData *models.PartialSource) error
+	GetFactSources() ([]*models.PartialSource, error)
+	GetFactSource(factSourceId string) (*models.PartialSource, error)
+	CreateFactSource(factSourceName string) (string, error)
+	DeleteFactSource(factSourceId string) error
 	CreateAdversary(abilityId string) (string, error)
 }
 
@@ -92,6 +98,7 @@ func (cc calderaConnection) CreateOperation(
 			Adversary: &models.Adversary{
 				AdversaryID:    adversaryId,
 				AtomicOrdering: []string{},
+				Tags:           []string{},
 			},
 			Group:      agentGroupId,
 			Autonomous: 1,
@@ -114,6 +121,7 @@ func (cc calderaConnection) CreateAdversary(abilityId string) (string, error) {
 		adversaries.NewPostAPIV2AdversariesParams().WithBody(&models.Adversary{
 			Name:           "SOARCA adversary",
 			AtomicOrdering: []string{abilityId},
+			Tags:           []string{},
 		}),
 		authenticateCaldera,
 	)
@@ -127,11 +135,13 @@ func (cc calderaConnection) CreateAdversary(abilityId string) (string, error) {
 //
 // It returns true if the operation is finished, false if it is not, or an error if it fails.
 func (cc calderaConnection) IsOperationFinished(operationId string) (bool, error) {
+	log.Error("EXEC")
 	response, err := cc.instance.send.Operationsops.GetAPIV2OperationsID(
 		operationsops.NewGetAPIV2OperationsIDParams().WithID(operationId),
 		authenticateCaldera,
 	)
 	if err != nil {
+		log.Error(err)
 		return false, err
 	}
 	if response.GetPayload().State == "finished" {
@@ -151,5 +161,53 @@ func (cc calderaConnection) RequestFacts(operationId string) ([]*models.PartialL
 	if err != nil {
 		return nil, err
 	}
+	return response.GetPayload(), nil
+}
+
+func (cc calderaConnection) SetFactSourceFacts(factSourceName string, factSourceData *models.PartialSource) error {
+	_, err := cc.instance.send.Sources.PatchAPIV2SourcesID(sources.NewPatchAPIV2SourcesIDParams().WithID(factSourceName).WithBody(factSourceData), authenticateCaldera)
+
+	return err
+}
+
+func (cc calderaConnection) CreateFactSource(factSourceName string) (string, error) {
+	body := models.Source{}
+	body.Name = factSourceName
+	body.Facts = []*models.Fact{}
+	body.Relationships = []*models.Relationship{}
+	body.Rules = []*models.Rule{}
+
+	response, err := cc.instance.send.Sources.PostAPIV2Sources(sources.NewPostAPIV2SourcesParams().WithBody(&body), authenticateCaldera)
+
+	if err != nil {
+		return "", err
+	}
+
+	return response.GetPayload().ID, nil
+}
+
+func (cc calderaConnection) GetFactSources() ([]*models.PartialSource, error) {
+	response, err := cc.instance.send.Sources.GetAPIV2Sources(sources.NewGetAPIV2SourcesParams(), authenticateCaldera)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response.GetPayload(), nil
+}
+
+func (cc calderaConnection) DeleteFactSource(factSourceId string) error {
+	_, err := cc.instance.send.Sources.DeleteAPIV2SourcesID(sources.NewDeleteAPIV2SourcesIDParams().WithID(factSourceId), authenticateCaldera)
+
+	return err
+}
+
+func (cc calderaConnection) GetFactSource(factSourceId string) (*models.PartialSource, error) {
+	response, err := cc.instance.send.Sources.GetAPIV2SourcesID(sources.NewGetAPIV2SourcesIDParams().WithID(factSourceId), authenticateCaldera)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return response.GetPayload(), nil
 }
