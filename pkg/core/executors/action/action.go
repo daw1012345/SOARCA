@@ -35,7 +35,7 @@ type PlaybookStepMetadata struct {
 	Variables cacao.Variables
 }
 
-type IExecuter interface {
+type IExecutor interface {
 	Execute(metadata execution.Metadata,
 		step PlaybookStepMetadata) (cacao.Variables, error)
 }

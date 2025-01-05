@@ -5,7 +5,7 @@ import (
 	"soarca/pkg/models/execution"
 )
 
-type IPlaybookExecuter interface {
+type IPlaybookExecutor interface {
 	Execute(execution.Metadata,
 		cacao.Step,
 		cacao.Variables) (cacao.Variables, error)
