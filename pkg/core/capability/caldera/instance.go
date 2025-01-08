@@ -2,11 +2,13 @@
 package caldera
 
 import (
-	"github.com/go-openapi/runtime"
-	httptransport "github.com/go-openapi/runtime/client"
 	"soarca/pkg/core/capability/caldera/api/client"
 	"soarca/pkg/utils"
+	"strings"
 	"sync"
+
+	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
 )
 
 // calderaInstance is a singleton struct that models the Caldera server Instance.
@@ -30,8 +32,19 @@ var instanceLock = &sync.Mutex{}
 // Plans are to check if the server instance is up and healty.
 func newCalderaInstance() (*calderaInstance, error) {
 	var config = client.DefaultTransportConfig()
-	config.Host = utils.GetEnv("CALDERA_HOST", "") + ":" + utils.GetEnv("CALDERA_PORT", "")
-	config.Schemes = []string{"http"}
+	calderaHost := utils.GetEnv("CALDERA_HOST", "")
+
+	scheme := []string{"http"}
+
+	if strings.Contains(calderaHost, "://") {
+		rawHostAndScheme := strings.SplitN(calderaHost, "://", 2)
+		calderaHost, scheme = rawHostAndScheme[1], []string{rawHostAndScheme[0]}
+	} else {
+		log.Warn("Caldera capability defaulting to HTTP")
+	}
+
+	config.Host = calderaHost + ":" + utils.GetEnv("CALDERA_PORT", "")
+	config.Schemes = scheme
 	var calderaClient = client.NewHTTPClientWithConfig(nil, config)
 	return &calderaInstance{*calderaClient}, nil
 }
