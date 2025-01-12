@@ -13,24 +13,10 @@
     "playbook--77bbe093-7e90-400c-a7c4-7b3a9396af15"
   ],
   "playbook_variables": {
-    "__ifStepVariable__": {
-      "type": "bool",
-      "description": "Variable used by the if-step",
-      "value": "true",
-      "constant": false,
-      "external": false
-    },
-    "__whileStepVariable__": {
-      "type": "integer",
-      "description": "Variable used by the while-step",
-      "value": "0",
-      "constant": false,
-      "external": false
-    },
-    "__switchStepVariable__": {
-      "type": "integer",
-      "description": "Variable used by the switch-step",
-      "value": "0",
+    "__should.execute.true__": {
+      "type": "string",
+      "description": "Some variable returned by caldera",
+      "value": "no",
       "constant": false,
       "external": false
     }
@@ -38,49 +24,37 @@
   "workflow_start": "start--025c407e-422e-4deb-8863-b3d4a8890f60",
   "workflow": {
     "start--025c407e-422e-4deb-8863-b3d4a8890f60": {
-      "on_completion": "if-condition--f00f0acb-a2ad-4832-b7c2-27d12506c6d7",
+      "on_completion": "action--a7bfa1f8-bbcf-4cf6-b5df-605c8b27a479",
       "type": "start"
     },
-    "if-condition--f00f0acb-a2ad-4832-b7c2-27d12506c6d7": {
-      "on_completion": "while-condition--8c0872af-a071-48af-9bf9-a8ad7e137289",
-      "type": "if-condition",
-      "condition": "__ifStepVariable__:value",
-      "on_true": "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1",
-      "on_false": "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266"
-    },
-    "while-condition--8c0872af-a071-48af-9bf9-a8ad7e137289": {
-      "on_completion": "switch-condition--33ba061e-193d-41db-b40b-0e8373997dc9",
-      "type": "while-condition",
-      "condition": "__whileStepVariable__:value <= 10",
-      "on_true": "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266"
-    },
-    "switch-condition--33ba061e-193d-41db-b40b-0e8373997dc9": {
-      "on_completion": "end--48d7d487-3c8a-4651-bbc2-40c519e2b9f7",
-      "type": "switch-condition",
-      "switch": "__switchStepVariable__:value",
-      "cases": {
-        "0": "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266",
-        "default": "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1"
-      }
-    },
-    "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1": {
-      "name": "Run some Caldera command",
-      "on_completion": "end--080de9ac-65c7-49f0-acd2-b21e92e34036",
+    "action--a7bfa1f8-bbcf-4cf6-b5df-605c8b27a479": {
+      "name": "Get some information using a caldera ability (will always set __should.execute.true__ to yes)",
+      "on_completion": "if-condition--f00f0acb-a2ad-4832-b7c2-27d12506c6d7",
       "type": "action",
       "commands": [
         {
           "type": "caldera-cmd",
-          "command": "id: 80879fa1-765e-48c2-bcd3-6fa3b4b2e7a7"
+          "command_b64": "aWQ6IDA2NjRhZTQxLTg0NzktNDRlOC04NTRjLWE3MDRjNmFmYmM0MgpuYW1lOiBUZXN0IEFiaWxpdHkKZGVzY3JpcHRpb246IFNhbXBsZSBhYmlsaXR5CnRhY3RpYzogZGlzY292ZXJ5CnRlY2huaXF1ZV9pZDogVDEwMTYKdGVjaG5pcXVlX25hbWU6IFN5c3RlbSBOZXR3b3JrIENvbmZpZ3VyYXRpb24gRGlzY292ZXJ5CmJ1Y2tldHM6IFtdCnJlcXVpcmVtZW50czogW10KZXhlY3V0b3JzOgogIC0gcGxhdGZvcm06IGxpbnV4CiAgICBuYW1lOiBzaAogICAgY29tbWFuZDogZWNobyAtZW4gInllc1xuIgogICAgcGF5bG9hZHM6IFtdCiAgICB1cGxvYWRzOiBbXQogICAgY2xlYW51cDogW10KICAgIHZhcmlhdGlvbnM6IFtdCiAgICB0aW1lb3V0OiA2MAogICAgcGFyc2VyczoKICAgICAgLSBtb2R1bGU6IHBsdWdpbnMuc3RvY2twaWxlLmFwcC5wYXJzZXJzLmJhc2ljCiAgICAgICAgcGFyc2VyY29uZmlnczoKICAgICAgICAgIC0gc291cmNlOiBzaG91bGQuZXhlY3V0ZS50cnVl"
         }
       ],
       "agent": "caldera--4801fe91-cd09-4da3-a67d-3d69cd9fec7c",
       "targets": [
         "security-category--b1ead715-d565-48f8-a6a4-0d5c4a3e643e"
+      ],
+      "out_args": [
+        "__should.execute.true__"
       ]
     },
-    "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266": {
-      "name": "Run another Caldera command",
+    "if-condition--f00f0acb-a2ad-4832-b7c2-27d12506c6d7": {
       "on_completion": "end--32964690-69a0-4fb3-8124-0ce63c0e09b9",
+      "type": "if-condition",
+      "condition": "__should.execute.true__:value = yes",
+      "on_true": "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1",
+      "on_false": "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266"
+    },
+    "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1": {
+      "name": "Run some Caldera command if true (sleep)",
+      "on_completion": "end--080de9ac-65c7-49f0-acd2-b21e92e34036",
       "type": "action",
       "commands": [
         {
@@ -93,13 +67,28 @@
         "security-category--b1ead715-d565-48f8-a6a4-0d5c4a3e643e"
       ]
     },
+    "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266": {
+      "name": "Run some Caldera command if false (enumerate python)",
+      "on_completion": "end--080de9ac-65c7-49f0-acd2-b21e92e34036",
+      "type": "action",
+      "commands": [
+        {
+          "type": "caldera-cmd",
+          "command": "id: b18e8767-b7ea-41a3-8e80-baf65a5ddef5"
+        }
+      ],
+      "agent": "caldera--4801fe91-cd09-4da3-a67d-3d69cd9fec7c",
+      "targets": [
+        "security-category--b1ead715-d565-48f8-a6a4-0d5c4a3e643e"
+      ]
+    },
+    "end--32964690-69a0-4fb3-8124-0ce63c0e09b9": {
+      "type": "end"
+    },
     "end--080de9ac-65c7-49f0-acd2-b21e92e34036": {
       "type": "end"
     },
     "end--48d7d487-3c8a-4651-bbc2-40c519e2b9f7": {
-      "type": "end"
-    },
-    "end--32964690-69a0-4fb3-8124-0ce63c0e09b9": {
       "type": "end"
     }
   },
