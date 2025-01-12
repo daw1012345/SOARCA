@@ -18,13 +18,13 @@
       "type": "start"
     },
     "action--623a0a80-a4ac-4989-b1da-5e3660b2e4f1": {
-      "name": "Run some Caldera command",
+      "name": "Run some Caldera command (check go)",
       "on_completion": "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266",
       "type": "action",
       "commands": [
         {
           "type": "caldera-cmd",
-          "command": "id: 80879fa1-765e-48c2-bcd3-6fa3b4b2e7a7"
+          "command": "id: 9849d956-37ea-49f2-a8b5-f2ca080b315d"
         }
       ],
       "agent": "caldera--4801fe91-cd09-4da3-a67d-3d69cd9fec7c",
@@ -33,7 +33,7 @@
       ]
     },
     "action--3ad2d927-9480-4d05-bcbb-7d40b4da2266": {
-      "name": "Run another Caldera command",
+      "name": "Run another Caldera command (sleep)",
       "on_completion": "end--080de9ac-65c7-49f0-acd2-b21e92e34036",
       "type": "action",
       "commands": [
