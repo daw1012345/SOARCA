@@ -122,7 +122,9 @@ ENABLE_FINS: false
 MQTT_BROKER: "localhost"
 MQTT_PORT: 1883
 
-CALDERA_URL: ""
+CALDERA_HOST: "http://caldera.mydomain.com"
+CALDERA_PORT: "8888"
+CALDERA_API_KEY: "ADMIN123"
 
 HTTP_SKIP_CERT_VALIDATION: false
 {{< /tab >}}

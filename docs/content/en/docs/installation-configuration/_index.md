@@ -52,6 +52,16 @@ After completing the [Getting Started](/docs/getting-started/_index.md) setup fo
 
 -----
 
+#### Caldera
+
+| Variable        | Content                                | Description                                                                 |
+|-----------------|----------------------------------------|-----------------------------------------------------------------------------|
+| CALDERA_HOST    | `http://your.caldera.instance`         | Set the base URL for the Caldera API. Must be set to use the integration.   |
+| CALDERA_PORT    | `8888`                                 | Set the port for the Caldera instance. Must be set to use the integration.  |
+| CALDERA_API_KEY | `your_token`                           | Set the base URL for The Hive API. Must be set to use the integration.      |
+
+-----
+
 ### Authentication
 
 {{% alert title="Note" color="primary" %}}
