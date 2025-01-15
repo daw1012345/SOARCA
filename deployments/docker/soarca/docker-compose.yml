@@ -82,7 +82,7 @@ services:
       THEHIVE_API_BASE_URL: http://localhost:9000/api/v1/
       CALDERA_HOST: "caldera"
       CALDERA_PORT: "8888"
-      CALDERA_API: "ADMIN123"
+      CALDERA_API_KEY: "ADMIN123"
     networks:
       - db-net
       - mqtt-net
