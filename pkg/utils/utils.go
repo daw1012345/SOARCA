@@ -20,3 +20,11 @@ func GetEnvVars(keys []string) []string {
 	}
 	return result
 }
+
+func SafeDerefString(s *string) string {
+    if s != nil {
+        return *s
+    }
+
+    return ""
+}
