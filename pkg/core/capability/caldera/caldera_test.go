@@ -81,6 +81,13 @@ func TestParseYamlAbilityWithException(t *testing.T) {
 	assert.Equal(t, resultingAbility.AbilityID, "")
 }
 
+func TestCleanup(t *testing.T) {
+	capability := New(&MockCalderaConnectionFactory{})
+	connection, err := capability.Factory.Create()
+	assert.Equal(t, err, nil)
+	cleanup(connection)
+}
+
 func TestExecuteErrorConnection(t *testing.T) {
 	calderaCapability := New(&MockBadCalderaConnectionFactory{})
 	_, err := calderaCapability.Execute(
@@ -113,7 +120,7 @@ func TestCalderaHandleFacts(t *testing.T) {
 
 }
 
-func TestSomethingElse(t *testing.T) {
+func TestBadCalderaConnection(t *testing.T) {
 	capability := New(nil)
 	connection, err := capability.Factory.Create()
 	assert.Equal(t, err, nil)
@@ -150,4 +157,19 @@ func TestSomethingElse(t *testing.T) {
 
 	err11 := connection.SetFactSourceFacts("source-0001", &calderaModels.PartialSource{})
 	assert.NotEqual(t, err11, nil)
+
+	err12 := connection.DeleteOperation("soarca-c045fe91-7dc6-4a2a-bbd6-b531ac183537")
+	assert.NotEqual(t, err12, nil)
+
+	err13 := connection.DeleteAdversary("soarca-c045fe91-7dc6-4a2a-bbd6-b531ac183537")
+	assert.NotEqual(t, err13, nil)
+
+	_, err14 := connection.GetAdversaries()
+	assert.NotEqual(t, err14, nil)
+
+	_, err15 := connection.GetAbilities()
+	assert.NotEqual(t, err15, nil)
+
+	_, err16 := connection.GetStaleOperations()
+	assert.NotEqual(t, err16, nil)
 }
