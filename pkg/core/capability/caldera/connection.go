@@ -2,6 +2,7 @@
 package caldera
 
 import (
+	"strings"
 	"soarca/pkg/core/capability/caldera/api/client/abilities"
 	"soarca/pkg/core/capability/caldera/api/client/adversaries"
 	"soarca/pkg/core/capability/caldera/api/client/operationsops"
@@ -45,6 +46,11 @@ type ICalderaConnection interface {
 	GetFactSource(factSourceId string) (*models.PartialSource, error)
 	CreateFactSource(factSourceName string) (string, error)
 	DeleteFactSource(factSourceId string) error
+	GetStaleOperations() ([]*models.PartialOperation, error)
+	DeleteOperation(operationId string) error
+	GetAdversaries() ([]*models.PartialAdversary, error)
+	DeleteAdversary(adversaryId string) error
+	GetAbilities() ([]*models.PartialAbility, error)
 }
 
 // calderaConnection is the default Caldera connection struct built by the calderaConnectionFactory.
@@ -217,7 +223,11 @@ func (cc calderaConnection) GetFactSources() ([]*models.PartialSource, error) {
 // It only returns an error if the request fails.
 func (cc calderaConnection) DeleteFactSource(factSourceId string) error {
 	_, err := cc.instance.send.Sources.DeleteAPIV2SourcesID(sources.NewDeleteAPIV2SourcesIDParams().WithID(factSourceId), authenticateCaldera)
-
+	if strings.Contains(err.Error(), "(status 204)") {
+		// The HTTP unfortunately treats HTTP 204 responses (No Content) as
+		// invalid/error responses. We want to ignore those errors.
+		return nil
+	}
 	return err
 }
 
@@ -231,5 +241,71 @@ func (cc calderaConnection) GetFactSource(factSourceId string) (*models.PartialS
 		return nil, err
 	}
 
+	return response.GetPayload(), nil
+}
+
+// GetStaleOperations provides a slice of all Operations that are - based on their name -
+// created by SOARCA and are finished. These operations should in principle be deleted.
+// Unfortunately, Caldera does not allow this type of filtering to take place server-side.
+func (cc calderaConnection) GetStaleOperations() ([]*models.PartialOperation, error) {
+	response, err := cc.instance.send.Operationsops.GetAPIV2Operations(
+		operationsops.NewGetAPIV2OperationsParams(),
+		authenticateCaldera,
+	)
+	if err != nil {
+		return nil, err
+	}
+	fullResult := response.GetPayload()
+	filteredResult := make([]*models.PartialOperation, 0)
+	for i := 0; i < len(fullResult); i++ {
+		if !strings.HasPrefix(fullResult[i].Name, "soarca-") {
+			// This Operation is not created by SOARCA, ignore
+			continue
+		}
+		if fullResult[i].State == "finished" {
+			filteredResult = append(filteredResult, fullResult[i])
+		}
+	}
+	return filteredResult, nil
+}
+
+// Deletes an Operation by its ID. Return an error upon failure.
+func (cc calderaConnection) DeleteOperation(operationId string) error {
+	_, err := cc.instance.send.Operationsops.DeleteAPIV2OperationsID(
+		operationsops.NewDeleteAPIV2OperationsIDParams().WithID(operationId),
+		authenticateCaldera,
+	)
+	if strings.Contains(err.Error(), "(status 204)") {
+		// The HTTP unfortunately treats HTTP 204 responses (No Content) as
+		// invalid/error responses. We want to ignore those errors.
+		return nil
+	}
+	return err
+}
+
+// Deletes an Adversary by its ID. Return an error upon failure.
+func (cc calderaConnection) DeleteAdversary(adversaryId string) error {
+	_, err := cc.instance.send.Adversaries.DeleteAPIV2AdversariesAdversaryID(
+		adversaries.NewDeleteAPIV2AdversariesAdversaryIDParams().WithAdversaryID(adversaryId),
+		authenticateCaldera,
+	)
+	return err
+}
+
+// Retrieves all available Abilities
+func (cc calderaConnection) GetAbilities() ([]*models.PartialAbility, error) {
+	response, err := cc.instance.send.Abilities.GetAPIV2Abilities(abilities.NewGetAPIV2AbilitiesParams(), authenticateCaldera)
+	if err != nil {
+		return nil, err
+	}
+	return response.GetPayload(), nil
+}
+
+// Retrieves all available Adversaries
+func (cc calderaConnection) GetAdversaries() ([]*models.PartialAdversary, error) {
+	response, err := cc.instance.send.Adversaries.GetAPIV2Adversaries(adversaries.NewGetAPIV2AdversariesParams(), authenticateCaldera)
+	if err != nil {
+		return nil, err
+	}
 	return response.GetPayload(), nil
 }

@@ -17,6 +17,7 @@ import (
 	"soarca/pkg/core/capability/caldera/api/models"
 	"soarca/pkg/models/cacao"
 	"soarca/pkg/models/execution"
+	"soarca/pkg/utils"
 )
 
 // calderaCapability is a struct that implements the ICapability interface for the caldera-cmd capability.
@@ -58,6 +59,86 @@ func (capability *calderaCapability) GetType() string {
 	return capabilityName
 }
 
+// Cleanup will attempt to remove any artifacts created by SOARCA on the Caldera installation.
+// This function is idempotent. This function will only remove artifacts tied to SOARCA-related
+// Operation objects for Operations that are finished, to prevent race conditions. Cleanup may
+// fail silently if it encounters errors.
+func cleanup(cc ICalderaConnection) {
+	staleOperations, err := cc.GetStaleOperations()
+	if err != nil {
+		log.Error("Caldera cleanup failed: unable to fetch stale operations")
+		return
+	}
+
+	if len(staleOperations) == 0 {
+		return
+	}
+
+	factSources, sourceErr := cc.GetFactSources()
+	if sourceErr != nil {
+		log.Error("Caldera cleanup failed: could not retrieve fact sources")
+	}
+
+	abilities, abilityErr := cc.GetAbilities()
+	if abilityErr != nil {
+		log.Error("Caldera cleanup failed: could not retrieve abilities")
+	}
+
+	adversaries, adversaryErr := cc.GetAdversaries()
+	if adversaryErr != nil {
+		log.Error("Caldera cleanup failed: could not retrieve adversaries")
+	}
+
+	for i := 0; i < len(staleOperations); i++ {
+		currentOperation := staleOperations[i]
+		successfulCleanup := true
+
+		for j := 0; j < len(factSources); j++ {
+			if factSources[j].Name == currentOperation.Name {
+				err := cc.DeleteFactSource(factSources[j].ID)
+				if err != nil {
+					successfulCleanup = false
+					log.Warn("Caldera cleanup: could not clean up a FactSource")
+				}
+			}
+		}
+
+		for j := 0; j < len(abilities); j++ {
+			if utils.SafeDerefString(abilities[j].Name) == currentOperation.Name {
+				err := cc.DeleteAbility(abilities[j].AbilityID)
+				if err != nil {
+					successfulCleanup = false
+					log.Warn("Caldera cleanup: could not clean up an Ability")
+				}
+			}
+		}
+
+		for j := 0; j < len(adversaries); j++ {
+			if adversaries[j].Name == currentOperation.Name {
+				err := cc.DeleteAdversary(adversaries[j].AdversaryID)
+				if err != nil {
+					successfulCleanup = false
+					log.Warn("Caldera cleanup: could not clean up an Adversary")
+				}
+			}
+		}
+
+		if !successfulCleanup {
+			log.Warn("Caldera cleanup: could not fully clean up operation artifacs")
+		} else {
+
+			// Delete the Operation last; this way we ensure all related
+			// artifacts are cleaned up first
+			err := cc.DeleteOperation(currentOperation.ID)
+			if err != nil {
+				log.Warn("Caldera cleanup: could not clean up operation")
+			}
+
+		}
+
+	}
+}
+
 // Execute performs the caldera-cmd capability and handles the business logic of the capability.
 // It takes a execution Metadata object and a capability Context object which describe the details of the step.
 // It first creates an ability if the step defines a custom ability. Afther that, it creates a single action adversary and starts an operation on the defined agents.
@@ -73,13 +154,12 @@ func (c *calderaCapability) Execute(
 
 	connection, err := c.Factory.Create()
 	if err != nil {
-		log.Error("Could not create a connection to caldera")
+		log.Error("Could not create a connection Caldera")
 		return cacao.NewVariables(), err
 	}
 
 	abilityId := ""
 	groupName := ""
-	createdAbility := false
 
 	// parse the command and create the ability if neccesary
 	if command.CommandB64 != "" {
@@ -102,7 +182,6 @@ func (c *calderaCapability) Execute(
 			log.Error("Could not create custom Ability")
 			return cacao.NewVariables(), err
 		}
-		createdAbility = true
 	} else {
 		abilityId = strings.Replace(command.Command, "id: ", "", -1)
 	}
@@ -161,23 +240,9 @@ func (c *calderaCapability) Execute(
 	}
 
 	// remove any artifacts
-	if createdAbility {
-		cleanup(connection, abilityId)
-	} else {
-		cleanup(connection, "")
-	}
+	cleanup(connection)
 
 	return facts, nil
-}
-
-// cleanup handles the removal of the created artifacts on the caldera server using the same connection.
-func cleanup(cc ICalderaConnection, abilityId string) {
-	if abilityId != "" {
-		err := cc.DeleteAbility(abilityId)
-		if err != nil {
-			log.Warn("Could not cleanup artifacts from command")
-		}
-	}
 }
 
 // Creates fact source suffixed with '-global' where all execution-specific facts will be stored
@@ -235,8 +300,8 @@ func processFacts(cc ICalderaConnection, operationId string, globalFactSourceId 
 	for _, link := range operationFacts {
 		for _, fact := range link.Facts {
 			factName := fmt.Sprint("__", fact.Name, "__")
-			log.Error(fmt.Sprintf("Fact name: %s", factName))
-			log.Error("Adding fact: ", factName, " with value: ", fmt.Sprint(fact.Value))
+			log.Debug(fmt.Sprintf("Fact name: %s", factName))
+			log.Debug("Adding fact: ", factName, " with value: ", fmt.Sprint(fact.Value))
 			variables[factName] = cacao.Variable{
 				Name:  factName,
 				Type:  cacao.VariableTypeString,
